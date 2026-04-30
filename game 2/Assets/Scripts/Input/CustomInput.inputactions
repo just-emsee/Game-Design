@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "name": "CustomInput",
+    "maps": [
+        {
+            "name": "Player",
+            "id": "c7dda349-f7fc-4383-ac36-6fd6dc6e9f00",
+            "actions": [
+                {
+                    "name": "SubmitMove",
+                    "type": "Button",
+                    "id": "4e861e41-4d30-4b79-99d2-d0ec70f553d5",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "70200d61-e4ef-49b4-bc47-d6295e4b53ef",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SubmitMove",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
