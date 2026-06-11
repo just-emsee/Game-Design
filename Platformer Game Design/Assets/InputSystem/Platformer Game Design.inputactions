@@ -36,7 +36,7 @@
                 {
                     "name": "Jump",
                     "type": "Button",
-                    "id": "6cfb11ad-e0fe-418b-88a4-a85f23b45c94",
+                    "id": "0b78896a-e6ea-47e2-8917-002f6b774f79",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -200,7 +200,7 @@
                 },
                 {
                     "name": "",
-                    "id": "39e545d9-f77e-4965-b344-686515527fc0",
+                    "id": "b1a8a487-3eee-4019-81d4-19100493910d",
                     "path": "<Keyboard>/space",
                     "interactions": "Press",
                     "processors": "",
@@ -220,6 +220,15 @@
                     "type": "PassThrough",
                     "id": "4afdb91f-4a6a-4a22-a376-d2dd24057dd5",
                     "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "StartPhase",
+                    "type": "Button",
+                    "id": "4a77e538-32d2-41a9-9a89-427c80e08a4a",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -570,6 +579,17 @@
                     "action": "Navigate",
                     "isComposite": false,
                     "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "08fa64d8-b23b-432f-b74a-60484c74e424",
+                    "path": "<Keyboard>/f",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "StartPhase",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 },
                 {
                     "name": "",

@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "name": "Phasing",
+    "maps": [
+        {
+            "name": "Phase",
+            "id": "7d2a2942-520d-4ea9-8e81-9c39a191ddbd",
+            "actions": [
+                {
+                    "name": "StartPhase",
+                    "type": "Button",
+                    "id": "a1be2005-c460-48c3-be04-3ab9e36c866c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "0b80cd56-6e03-414b-b5df-aa8f95eb8926",
+                    "path": "<Keyboard>/f",
+                    "interactions": "Press",
+                    "processors": "",
+                    "groups": "",
+                    "action": "StartPhase",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
