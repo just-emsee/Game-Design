@@ -182,6 +182,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   moveSpeed: 10
+  coyoteTime: 0.05
   jumpForce: 20
   groundLayer:
     serializedVersion: 2
