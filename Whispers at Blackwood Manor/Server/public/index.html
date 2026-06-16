@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Murder Mystery Join</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        input, button {
+            font-size: 20px;
+            padding: 12px;
+            margin: 10px;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        button {
+            background: #7b2cff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #playerList {
+            margin-top: 30px;
+        }
+
+        .offline {
+            color: gray;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Murder Mystery</h1>
+
+    <div id="joinScreen">
+        <p>Enter your name:</p>
+        <input id="nameInput" placeholder="Your name">
+        <br>
+        <button onclick="joinGame()">Join</button>
+    </div>
+
+    <div id="waitingScreen" class="hidden">
+        <h2>Waiting for the host...</h2>
+        <p>You joined as:</p>
+        <h1 id="myName"></h1>
+        <p id="connectionStatus">Connected</p>
+    </div>
+
+    <div id="playerList">
+        <h2>Players joined:</h2>
+        <ul id="players"></ul>
+    </div>
+
+    <script>
+        let socket;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const debugId = urlParams.get("debugId");
+        const debugName = urlParams.get("debugName");
+
+        function storageKey(key) {
+            if (debugId) {
+                return key + "_" + debugId;
+            }
+
+            return key;
+        }
+
+        let joinedName = localStorage.getItem(storageKey("joinedName")) || "";
+
+        let clientId = localStorage.getItem(storageKey("clientId"));
+
+        if (!clientId) {
+            clientId = generateClientId();
+            localStorage.setItem(storageKey("clientId"), clientId);
+        }
+
+        function generateClientId() {
+            return "player-" + Date.now() + "-" + Math.floor(Math.random() * 1000000);
+        }
+        connect();
+
+        function connect() {
+            socket = new WebSocket(`ws://${window.location.host}`);
+
+                socket.onopen = () => {
+                    console.log("Connected to server");
+
+                    const status = document.getElementById("connectionStatus");
+                    if (status) {
+                        status.innerText = "Connected";
+                    }
+                };
+
+                socket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === "serverSession") {
+                        handleServerSession(data.sessionId);
+                    }
+
+                    if (data.type === "playerList") {
+                        updatePlayerList(data.players);
+                    }
+
+                    if (data.type === "joinError") {
+                        alert(data.message);
+                        resetSavedPlayer();
+                        showJoinScreen();
+                    }
+
+                    if (data.type === "reconnected") {
+                        joinedName = data.name;
+                        localStorage.setItem(storageKey("joinedName"), joinedName);
+                        showWaitingScreen(joinedName);
+                    }
+
+                    if (data.type === "showMurderChoice") {
+                        showMurderChoiceScreen(data);
+                    }
+
+                    if (data.type === "showKillerWake") {
+                        showKillerWakeScreen(data);
+                    }
+
+                    if (data.type === "showHenchmanWake") {
+                        showHenchmanWakeScreen(data);
+                    }
+
+                    if (data.type === "showRoleScreen") {
+                        showRoleScreen(data);
+                    }
+
+                    if (data.type === "showVictimDead") {
+                        showVictimDeadScreen(data);
+                    }
+
+                    if (data.type === "showVictimWhisperChoice") {
+                        showVictimWhisperChoiceScreen(data);
+                    }
+
+                    if (data.type === "showVictimWhisperCooldown") {
+                        showVictimWhisperCooldownScreen(data);
+                    }
+
+                    if (data.type === "showVictimNoWhispersLeft") {
+                        showVictimNoWhispersLeftScreen(data);
+                    }
+
+                    if (data.type === "showGuestVictimWhisper") {
+                        showGuestVictimWhisperScreen(data);
+                    }
+                };
+
+            socket.onclose = () => {
+                console.log("Disconnected from server");
+
+                const status = document.getElementById("connectionStatus");
+                if (status) {
+                    status.innerText = "Disconnected. Reconnecting...";
+                }
+
+                setTimeout(connect, 1000);
+            };
+        }
+
+        function joinGame() {
+            const name = document.getElementById("nameInput").value.trim();
+
+            if (name.length === 0) {
+                alert("Please enter a name.");
+                return;
+            }
+
+            joinedName = name;
+            localStorage.setItem(storageKey("joinedName"), joinedName);
+
+            socket.send(JSON.stringify({
+                type: "join",
+                clientId: clientId,
+                name: name
+            }));
+
+            showWaitingScreen(name);
+        }
+
+        function showWaitingScreen(name) {
+            document.getElementById("myName").innerText = name;
+            document.getElementById("joinScreen").classList.add("hidden");
+            document.getElementById("waitingScreen").classList.remove("hidden");
+        }
+
+        function showJoinScreen() {
+            localStorage.removeItem(storageKey("joinedName"));
+            joinedName = "";
+
+            document.getElementById("joinScreen").classList.remove("hidden");
+            document.getElementById("waitingScreen").classList.add("hidden");
+        }
+
+        function updatePlayerList(players) {
+            const list = document.getElementById("players");
+            list.innerHTML = "";
+
+            players.forEach(player => {
+                const item = document.createElement("li");
+
+                if (player.online) {
+                    item.innerText = player.name;
+                } else {
+                    item.innerText = player.name + " (offline)";
+                    item.classList.add("offline");
+                }
+
+                list.appendChild(item);
+            });
+        }
+
+        function handleServerSession(sessionId) {
+            const savedSessionId = localStorage.getItem(storageKey("serverSessionId"));
+
+            if (savedSessionId && savedSessionId !== sessionId) {
+                resetSavedPlayer();
+                localStorage.setItem(storageKey("serverSessionId"), sessionId);
+                showJoinScreen();
+            }
+
+            localStorage.setItem(storageKey("serverSessionId"), sessionId);
+
+            if (debugName && !joinedName) {
+                joinedName = debugName;
+                localStorage.setItem(storageKey("joinedName"), joinedName);
+
+                socket.send(JSON.stringify({
+                    type: "join",
+                    clientId: clientId,
+                    name: joinedName
+                }));
+
+                showWaitingScreen(joinedName);
+                return;
+            }
+
+            if (joinedName) {
+                socket.send(JSON.stringify({
+                    type: "reconnect",
+                    clientId: clientId
+                }));
+            }
+        }
+
+        function resetSavedPlayer() {
+            localStorage.removeItem(storageKey("joinedName"));
+            localStorage.removeItem(storageKey("clientId"));
+
+            joinedName = "";
+            clientId = generateClientId();
+            localStorage.setItem(storageKey("clientId"), clientId);
+        }
+
+        function showKillerWakeScreen(data) {
+            document.body.innerHTML = `
+                <div style="
+                    font-family: Arial, sans-serif;
+                    background: #111;
+                    color: white;
+                    min-height: 100vh;
+                    text-align: center;
+                    padding: 40px;
+                ">
+                    <h1 style="color: #ff4444;">You are the Killer</h1>
+                    <p style="font-size: 24px;">Open your eyes quietly.</p>
+                    <p style="font-size: 20px;">Wait for the host to continue.</p>
+
+                    <div style="
+                        margin-top: 40px;
+                        padding: 20px;
+                        border: 2px solid #ff4444;
+                        border-radius: 12px;
+                        background: #220000;
+                    ">
+                        <p>Do not show this screen yet.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showVictimWhisperChoiceScreen(data) {
+            const options = data.whisperOptions || [];
+
+            document.body.innerHTML = `
+                <div style="
+                    min-height: 100vh;
+                    background: radial-gradient(circle at top, #3a0000, #08060d 60%);
+                    color: white;
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    padding: 28px;
+                ">
+                    <h1 style="color:#ff7777;">You are dead</h1>
+                    <p style="font-size:18px; opacity:0.8;">${data.playerName || ""}</p>
+                    <p style="font-size:20px;">Choose a final whisper.</p>
+                    <p>A random Guest will receive it.</p>
+
+                    <div id="whisperButtons" style="
+                        display: flex;
+                        flex-direction: column;
+                        gap: 14px;
+                        max-width: 520px;
+                        margin: 30px auto;
+                    "></div>
+                </div>
+            `;
+
+            const container = document.getElementById("whisperButtons");
+
+            options.forEach(option => {
+                const button = document.createElement("button");
+                button.innerText = option;
+                button.style.padding = "18px";
+                button.style.fontSize = "18px";
+                button.style.borderRadius = "12px";
+                button.style.border = "2px solid #ff7777";
+                button.style.background = "#220000";
+                button.style.color = "white";
+                button.style.whiteSpace = "pre-line";
+
+                button.onclick = () => {
+                    socket.send(JSON.stringify({
+                        type: "submitVictimWhisper",
+                        whisperText: option
+                    }));
+
+                    const buttons = container.querySelectorAll("button");
+                    buttons.forEach(b => b.disabled = true);
+
+                    button.innerText = "Whisper sent...";
+                };
+
+                container.appendChild(button);
+            });
+        }
+
+        function showVictimWhisperCooldownScreen(data) {
+            let seconds = Math.floor(data.cooldownSeconds || 30);
+
+            document.body.innerHTML = `
+                <div style="
+                    min-height: 100vh;
+                    background: radial-gradient(circle at top, #3a0000, #08060d 60%);
+                    color: white;
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    padding: 40px;
+                ">
+                    <h1 style="color:#ff7777;">Whisper Sent</h1>
+                    <p>Your message reached a Guest.</p>
+                    <p style="font-size:24px;">Next whisper in <span id="cooldownTimer">${seconds}</span> seconds...</p>
+                </div>
+            `;
+
+            const timer = setInterval(() => {
+                seconds--;
+                const timerElement = document.getElementById("cooldownTimer");
+
+                if (timerElement) {
+                    timerElement.innerText = seconds;
+                }
+
+                if (seconds <= 0) {
+                    clearInterval(timer);
+
+                    socket.send(JSON.stringify({
+                        type: "requestNextVictimWhisper"
+                    }));
+                }
+            }, 1000);
+        }
+
+        function showVictimNoWhispersLeftScreen(data) {
+            document.body.innerHTML = `
+                <div style="
+                    min-height: 100vh;
+                    background: radial-gradient(circle at top, #3a0000, #08060d 60%);
+                    color: white;
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    padding: 40px;
+                ">
+                    <h1 style="color:#ff7777;">No Whispers Left</h1>
+                    <p>Every Guest has received a message.</p>
+                    <p>You may still not speak.</p>
+                </div>
+            `;
+        }
+
+        function showGuestVictimWhisperScreen(data) {
+            document.body.innerHTML = `
+                <div style="
+                    min-height: 100vh;
+                    background: radial-gradient(circle at top, #1b1230, #08060d 60%);
+                    color: white;
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    padding: 32px;
+                ">
+                    <p style="font-size:18px; opacity:0.8;">${data.playerName || ""}</p>
+                    <h1 style="color:#e6d7b8;">You are the Guest</h1>
+
+                    <div style="
+                        margin-top: 30px;
+                        padding: 22px;
+                        border: 2px solid #7a5a8f;
+                        border-radius: 12px;
+                        background: #161020;
+                        max-width: 520px;
+                        margin-left: auto;
+                        margin-right: auto;
+                        white-space: pre-line;
+                        font-size: 20px;
+                    ">
+                        <strong>Victim's Whisper:</strong>
+
+                        ${data.whisperText}
+                    </div>
+
+                    <p style="margin-top: 30px; font-size:17px;">
+                        You may share this during discussion.
+                    </p>
+                </div>
+            `;
+        }
+
+        let selectedVictimClientId = null;
+let selectedVictimName = null;
+let selectedWeapon = null;
+let selectedLocation = null;
+
+function showMurderChoiceScreen(data) {
+    selectedVictimClientId = null;
+    selectedVictimName = null;
+    selectedWeapon = null;
+    selectedLocation = null;
+
+    document.body.innerHTML = `
+        <div class="killer-page">
+            <h1 class="killer-title">Choose the Murder</h1>
+
+            <section>
+                <h2>Victim</h2>
+                <div id="victimButtons" class="choice-grid"></div>
+            </section>
+
+            <section>
+                <h2>Weapon</h2>
+                <div id="weaponButtons" class="choice-grid"></div>
+            </section>
+
+            <section>
+                <h2>Location</h2>
+                <div id="locationButtons" class="choice-grid"></div>
+            </section>
+
+            <button id="confirmButton" class="confirm-button" onclick="confirmMurder()">
+                Confirm Murder
+            </button>
+
+            <p id="warningText" class="warning-text"></p>
+        </div>
+    `;
+
+    const style = document.createElement("style");
+    style.innerHTML = `
+        body {
+            margin: 0;
+            background: #08060d;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .killer-page {
+            min-height: 100vh;
+            padding: 24px;
+            text-align: center;
+            background:
+                radial-gradient(circle at top, #2a0b18 0%, #08060d 55%),
+                linear-gradient(180deg, #140012, #050509);
+        }
+
+        .killer-title {
+            color: #ff4444;
+            font-size: 34px;
+            margin-bottom: 28px;
+            letter-spacing: 1px;
+        }
+
+        section {
+            margin-bottom: 26px;
+        }
+
+        h2 {
+            color: #e6d7b8;
+            margin-bottom: 10px;
+        }
+
+        .choice-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .choice-button {
+            padding: 16px 8px;
+            font-size: 17px;
+            border-radius: 10px;
+            border: 2px solid #5b436d;
+            background: #161020;
+            color: white;
+            min-height: 64px;
+        }
+
+        .choice-button.selected {
+            border-color: #ff4444;
+            background: #441018;
+            box-shadow: 0 0 12px #ff4444;
+        }
+
+        .confirm-button {
+            margin-top: 18px;
+            padding: 18px;
+            width: 90%;
+            max-width: 420px;
+            font-size: 22px;
+            border-radius: 12px;
+            border: none;
+            color: white;
+            background: #8b0000;
+            font-weight: bold;
+        }
+
+        .warning-text {
+            color: #ffaaaa;
+            font-size: 16px;
+            min-height: 24px;
+        }
+    `;
+    document.head.appendChild(style);
+
+    createVictimButtons(data.victims);
+    createTextButtons("weaponButtons", data.weapons, "weapon");
+    createTextButtons("locationButtons", data.locations, "location");
+}
+
+function createVictimButtons(victims) {
+    const container = document.getElementById("victimButtons");
+
+    victims.forEach(victim => {
+        const button = document.createElement("button");
+        button.className = "choice-button";
+        button.innerText = victim.name;
+
+        button.onclick = () => {
+            selectedVictimClientId = victim.clientId;
+            selectedVictimName = victim.name;
+            selectButton(container, button);
+        };
+
+        container.appendChild(button);
+    });
+}
+
+function createTextButtons(containerId, options, type) {
+    const container = document.getElementById(containerId);
+
+    options.forEach(option => {
+        const button = document.createElement("button");
+        button.className = "choice-button";
+        button.innerText = option;
+
+        button.onclick = () => {
+            if (type === "weapon") {
+                selectedWeapon = option;
+            }
+
+            if (type === "location") {
+                selectedLocation = option;
+            }
+
+            selectButton(container, button);
+        };
+
+        container.appendChild(button);
+    });
+}
+
+function selectButton(container, selectedButton) {
+    const buttons = container.querySelectorAll(".choice-button");
+
+    buttons.forEach(button => {
+        button.classList.remove("selected");
+    });
+
+    selectedButton.classList.add("selected");
+}
+
+function confirmMurder() {
+    const warningText = document.getElementById("warningText");
+
+    if (!selectedVictimClientId || !selectedWeapon || !selectedLocation) {
+        warningText.innerText = "Choose one victim, one weapon, and one location.";
+        return;
+    }
+
+    socket.send(JSON.stringify({
+        type: "submitMurder",
+        killerClientId: clientId,
+        victimClientId: selectedVictimClientId,
+        victimName: selectedVictimName,
+        weapon: selectedWeapon,
+        location: selectedLocation
+    }));
+
+    document.body.innerHTML = `
+        <div style="
+            min-height: 100vh;
+            background: #08060d;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 40px;
+        ">
+            <h1 style="color:#ff4444;">Murder Confirmed</h1>
+            <p style="font-size:24px;">Close your eyes again.</p>
+            <p>Wait for the host.</p>
+        </div>
+    `;
+}
+
+function showHenchmanWakeScreen(data) {
+    document.body.innerHTML = `
+        <div style="
+            min-height: 100vh;
+            background: radial-gradient(circle at top, #2a0b18, #08060d 60%);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 36px;
+        ">
+            <h1 style="color:#ff8844;">You are the Henchman</h1>
+
+            <p style="font-size:22px;">Protect the Killer.</p>
+
+            <div style="
+                margin-top: 30px;
+                padding: 20px;
+                border: 2px solid #ff8844;
+                border-radius: 12px;
+                background: #211008;
+                max-width: 420px;
+                margin-left: auto;
+                margin-right: auto;
+            ">
+                <p><strong>Killer:</strong> ${data.killerName}</p>
+                <p><strong>Victim:</strong> ${data.victimName}</p>
+                <p><strong>Weapon:</strong> ${data.weapon}</p>
+                <p><strong>Location:</strong> ${data.location}</p>
+            </div>
+
+            <p style="margin-top: 30px; font-size:18px;">
+                Close your eyes again when the host tells you.
+            </p>
+        </div>
+    `;
+}
+
+function showRoleScreen(data) {
+    document.body.innerHTML = `
+        <div style="
+            min-height: 100vh;
+            background: radial-gradient(circle at top, #1b1230, #08060d 60%);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 32px;
+        ">
+            <p style="font-size:18px; opacity:0.8;">${data.playerName || ""}</p>
+            <h1 style="color:#e6d7b8;">You are the ${data.visibleRole}</h1>
+
+            <div style="
+                margin-top: 30px;
+                padding: 22px;
+                border: 2px solid #5b436d;
+                border-radius: 12px;
+                background: #161020;
+                max-width: 460px;
+                margin-left: auto;
+                margin-right: auto;
+                white-space: pre-line;
+                font-size: 20px;
+            ">
+                ${data.clueText}
+            </div>
+
+            <p style="margin-top: 30px; font-size:17px;">
+                You may show this screen during discussion.
+            </p>
+        </div>
+    `;
+}
+
+function showVictimDeadScreen(data) {
+    document.body.innerHTML = `
+        <div style="
+            min-height: 100vh;
+            background: radial-gradient(circle at top, #3a0000, #08060d 60%);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 40px;
+        ">
+            <p style="font-size:18px; opacity:0.8;">${data.playerName || ""}</p>
+            <h1 style="color:#ff4444;">You were murdered</h1>
+            <p style="font-size:24px;">You may not speak.</p>
+            <p style="font-size:18px;">Watch carefully and wait for the reveal.</p>
+
+            <div style="
+                margin-top: 40px;
+                padding: 20px;
+                border: 2px solid #ff4444;
+                border-radius: 12px;
+                background: #220000;
+            ">
+                <p>You still win with the innocent team.</p>
+            </div>
+        </div>
+    `;
+}
+
+        if (joinedName) {
+            showWaitingScreen(joinedName);
+        }
+    </script>
+</body>
+</html>

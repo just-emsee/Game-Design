@@ -1,0 +1,66 @@
+{
+    "version": 1,
+    "name": "CustomInput",
+    "maps": [
+        {
+            "name": "Player",
+            "id": "c7dda349-f7fc-4383-ac36-6fd6dc6e9f00",
+            "actions": [
+                {
+                    "name": "SubmitMove",
+                    "type": "Button",
+                    "id": "4e861e41-4d30-4b79-99d2-d0ec70f553d5",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Restart",
+                    "type": "Button",
+                    "id": "ebeab81c-318f-49b3-ac4c-327b45727c78",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "70200d61-e4ef-49b4-bc47-d6295e4b53ef",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SubmitMove",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c7c6fa6e-ab81-4826-9cc2-130adacf206c",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SubmitMove",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "488d65ca-1552-4196-8c86-b6eddb3c3bef",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Restart",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
