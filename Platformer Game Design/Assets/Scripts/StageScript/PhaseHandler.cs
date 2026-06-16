@@ -22,8 +22,27 @@ public class PhaseHandler : MonoBehaviour
 
     private bool phaseOnCooldown = false;
 
+    private InputActions input = null;
 
-    public void TryPhase()
+    private void Awake() {
+        input = new InputActions();
+    }
+
+    void OnEnable() {
+        input.Enable();
+    }
+
+    private void OnDisable() {
+        input.Disable();
+    }
+
+    private void Update() {
+        if (input.Player.Phase.WasPressedThisFrame()) {
+            TryPhase();
+        }
+    }
+
+    private void TryPhase()
     {
         if (phaseCooldownLeft <= 0)
         {

@@ -1,3 +1,4 @@
+using Mono.Cecil.Cil;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -5,31 +6,34 @@ public class PlayerMovement : MonoBehaviour
 {
     private Rigidbody2D rb;
     private BoxCollider2D col;
+    private float lastGroundTime = 0;
 
     [Header("Movement Values")]
-    [SerializeField]
-    private float moveSpeed = 10f;
-    [SerializeField]
-    private float jumpForce = 7f;
+    [SerializeField] private float moveSpeed = 10f;
+    [SerializeField] private float coyoteTime = .02f;
+    [SerializeField] private float jumpForce = 7f;
 
     [Header("Ground Layer")]
-    [SerializeField]
-    private LayerMask groundLayer;
+    [SerializeField] private LayerMask groundLayer;
 
-    private InputAction walkInput;
-    private InputAction moveInput;
+    private InputActions input = null;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<BoxCollider2D>();
-
-        InitializeInputs();
     }
 
-    private void InitializeInputs()
-    {
-        walkInput = InputSystem.actions.FindAction("Move");
+    private void Awake() {
+        input = new InputActions();
+    }
+
+    void OnEnable() {
+        input.Enable();
+    }
+
+    private void OnDisable() {
+        input.Disable();
     }
 
     private void FixedUpdate()
@@ -39,31 +43,40 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        
+        GroundedCheck();
+        if (input.Player.Jump.WasPressedThisFrame()) {
+            Jump();
+        }
     }
 
     private void Movement()
     {
-        rb.linearVelocityX = walkInput.ReadValue<Vector2>().x * moveSpeed;
+        rb.linearVelocityX = input.Player.Move.ReadValue<float>() * moveSpeed;
     }
 
-    public void Jump()
+    private void Jump()
     {
-        Debug.Log("jump");
-        if (IsGrounded())
+        if (CanJump())
         {
             rb.linearVelocityY = jumpForce;
+            lastGroundTime = 0;
+        }
+    }
+
+    private bool CanJump() {
+        return IsGrounded() || lastGroundTime + coyoteTime >= Time.time;
+    }
+
+    private void GroundedCheck() { 
+        if (IsGrounded()) {
+            lastGroundTime = Time.time;
         }
     }
 
     private bool IsGrounded()
     {
+        if (rb.linearVelocityY > 0) return false;
         RaycastHit2D hit = Physics2D.BoxCast(col.bounds.center, col.bounds.size, 0f, Vector2.down, .01f, groundLayer);
-        if (hit)
-        {
-            return !hit.collider.isTrigger;
-        }
-
-        return false;
+        return hit && !hit.collider.isTrigger;
     }
 }
