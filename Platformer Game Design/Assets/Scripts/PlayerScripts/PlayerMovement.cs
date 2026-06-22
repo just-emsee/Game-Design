@@ -44,7 +44,7 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         GroundedCheck();
-        if (input.Player.Jump.WasPressedThisFrame()) {
+        if (input.Player.Jump.IsPressed()) {
             Jump();
         }
     }
