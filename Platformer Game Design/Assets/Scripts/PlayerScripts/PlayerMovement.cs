@@ -75,7 +75,7 @@ public class PlayerMovement : MonoBehaviour
 
     private bool IsGrounded()
     {
-        if (rb.linearVelocityY > 0) return false;
+        if (rb.linearVelocityY > .001) return false;
         RaycastHit2D hit = Physics2D.BoxCast(col.bounds.center, col.bounds.size, 0f, Vector2.down, .01f, groundLayer);
         return hit && !hit.collider.isTrigger;
     }
