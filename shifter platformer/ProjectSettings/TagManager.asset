@@ -8,6 +8,7 @@ TagManager:
   - Paper
   - Scissors
   - Enemy
+  - DeathZone
   layers:
   - Default
   - TransparentFX
