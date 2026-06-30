@@ -1498,10 +1498,14 @@ public class ServerConnection : MonoBehaviour
 
         Shuffle(shown);
 
-        return "One of these people is the Killer:\n\n" +
-               shown[0].playerName + ", " +
-               shown[1].playerName + ", " +
-               shown[2].playerName;
+        string toReturn = "One of these people is the Killer:\n\n";
+
+        foreach (RoleManager.AssignedPlayerRole role in shown)
+        {
+            toReturn += role.playerName + ", ";
+        }
+
+        return toReturn.TrimEnd(',', ' ');
     }
 
     private async void HandleVictimWhisperSubmitted(ServerMessage serverMessage)
